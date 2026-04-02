@@ -166,6 +166,7 @@ function renderThumbnails(entries: CanvasEntry[]) {
     item.title = entry.label;
 
     const thumbImg = document.createElement('img');
+    thumbImg.crossOrigin = 'anonymous';
     thumbImg.src = entry.thumbUrl;
     thumbImg.alt = entry.label;
     item.appendChild(thumbImg);
