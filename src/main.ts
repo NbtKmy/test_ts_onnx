@@ -71,7 +71,7 @@ thresholdSlider.addEventListener('input', () => {
 });
 
 // --- Class names ---
-const classNames = await fetch('/classes.txt')
+const classNames = await fetch(`${import.meta.env.BASE_URL}classes.txt`)
   .then(r => r.text())
   .then(text => text.trim().split('\n'));
 
@@ -253,7 +253,7 @@ if (!webgpuSupported) {
 }
 
 // --- Session management ---
-let session = await ort.InferenceSession.create('/yolo26m.onnx');
+let session = await ort.InferenceSession.create(`${import.meta.env.BASE_URL}yolo26m.onnx`);
 console.log('Model loaded (CPU).');
 
 async function reloadSession(ep: 'cpu' | 'webgpu') {
@@ -261,7 +261,7 @@ async function reloadSession(ep: 'cpu' | 'webgpu') {
   detectBtn.textContent = 'Loading model...';
   inferenceTime.textContent = '';
   try {
-    session = await ort.InferenceSession.create('/yolo26m.onnx', {
+    session = await ort.InferenceSession.create(`${import.meta.env.BASE_URL}yolo26m.onnx`, {
       executionProviders: [ep],
     });
     console.log(`Model loaded (${ep}).`);
