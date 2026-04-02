@@ -102,6 +102,89 @@ fileInput.addEventListener('change', (e) => {
 });
 
 // --- IIIF Manifest ---
+
+type CanvasEntry = { thumbUrl: string; fullUrl: string; label: string };
+
+function detectVersion(manifest: any): 2 | 3 {
+  const ctx = [manifest['@context']].flat().join(' ');
+  return ctx.includes('presentation/3') ? 3 : 2;
+}
+
+function labelString(label: any): string {
+  if (!label) return '';
+  if (typeof label === 'string') return label;
+  // v3: { "en": ["..."], "ja": ["..."] }
+  const values = Object.values(label as Record<string, string[]>);
+  return values[0]?.[0] ?? '';
+}
+
+function serviceId(service: any): string | undefined {
+  if (!service) return undefined;
+  const s = Array.isArray(service) ? service[0] : service;
+  return (s?.['@id'] ?? s?.id) as string | undefined;
+}
+
+function parseV2(manifest: any): CanvasEntry[] {
+  const canvases = manifest.sequences?.[0]?.canvases ?? [];
+  return canvases.flatMap((canvas: any) => {
+    const resource = canvas.images?.[0]?.resource;
+    if (!resource) return [];
+    const svcId = serviceId(resource.service);
+    const fullUrl = (resource['@id'] ?? '') as string;
+    return [{
+      label: labelString(canvas.label),
+      fullUrl,
+      thumbUrl: svcId ? `${svcId}/full/150,/0/default.jpg` : fullUrl,
+    }];
+  });
+}
+
+function parseV3(manifest: any): CanvasEntry[] {
+  const canvases = manifest.items ?? [];
+  return canvases.flatMap((canvas: any) => {
+    const body = canvas.items?.[0]?.items?.[0]?.body;
+    if (!body) return [];
+    const svcId = serviceId(body.service);
+    const fullUrl = (body.id ?? body['@id'] ?? '') as string;
+    return [{
+      label: labelString(canvas.label),
+      fullUrl,
+      thumbUrl: svcId ? `${svcId}/full/150,/0/default.jpg` : fullUrl,
+    }];
+  });
+}
+
+function renderThumbnails(entries: CanvasEntry[]) {
+  thumbnailGrid.innerHTML = '';
+  if (entries.length === 0) {
+    thumbnailGrid.textContent = 'No canvases found.';
+    return;
+  }
+  for (const entry of entries) {
+    const item = document.createElement('div');
+    item.className = 'thumb-item';
+    item.title = entry.label;
+
+    const thumbImg = document.createElement('img');
+    thumbImg.src = entry.thumbUrl;
+    thumbImg.alt = entry.label;
+    item.appendChild(thumbImg);
+
+    item.addEventListener('click', () => {
+      thumbnailGrid.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('selected'));
+      item.classList.add('selected');
+
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.src = entry.fullUrl;
+      img.onload = () => setCurrentImage(img);
+      img.onerror = () => console.error('Image load failed:', entry.fullUrl);
+    });
+
+    thumbnailGrid.appendChild(item);
+  }
+}
+
 const loadManifestBtn = document.getElementById('loadManifestBtn') as HTMLButtonElement;
 const manifestUrlInput = document.getElementById('manifestUrl') as HTMLInputElement;
 
@@ -115,57 +198,12 @@ loadManifestBtn.addEventListener('click', async () => {
 
   try {
     const manifest = await fetch(url).then(r => r.json());
-    const canvases = manifest.sequences?.[0]?.canvases ?? [];
-
-    if (canvases.length === 0) {
-      thumbnailGrid.textContent = 'canvasが見つかりませんでした。';
-      return;
-    }
-
-    for (const canvas of canvases) {
-      const resource = canvas.images?.[0]?.resource;
-      if (!resource) continue;
-
-      // サムネイルURL: IIIFイメージサービスがあれば小さいサイズを要求
-      const serviceId = resource.service?.['@id'] as string | undefined;
-      const fullUrl = resource['@id'] as string;
-      const thumbUrl = serviceId
-        ? `${serviceId}/full/150,/0/default.jpg`
-        : fullUrl;
-
-      const label = canvas.label ?? '';
-
-      const item = document.createElement('div');
-      item.className = 'thumb-item';
-      item.title = label;
-
-      const thumbImg = document.createElement('img');
-      thumbImg.src = thumbUrl;
-      thumbImg.alt = label;
-      item.appendChild(thumbImg);
-
-      item.addEventListener('click', () => {
-        // 選択状態をリセット
-        thumbnailGrid.querySelectorAll('.thumb-item').forEach(el => el.classList.remove('selected'));
-        item.classList.add('selected');
-
-        // フル画像を読み込んでcanvasに表示
-        const img = new Image();
-        img.crossOrigin = 'anonymous';
-        img.src = serviceId ? `${serviceId}/full/full/0/default.jpg` : fullUrl;
-        img.onload = () => setCurrentImage(img);
-        img.onerror = () => {
-          // サービスURLが失敗したらフルURLにフォールバック
-          if (img.src !== fullUrl) {
-            img.src = fullUrl;
-          }
-        };
-      });
-
-      thumbnailGrid.appendChild(item);
-    }
+    const version = detectVersion(manifest);
+    const entries = version === 3 ? parseV3(manifest) : parseV2(manifest);
+    console.log(`IIIF v${version}: ${entries.length} canvases`);
+    renderThumbnails(entries);
   } catch (err) {
-    thumbnailGrid.textContent = `エラー: ${err}`;
+    thumbnailGrid.textContent = `Error: ${err}`;
   } finally {
     loadManifestBtn.disabled = false;
     loadManifestBtn.textContent = 'Load';
