@@ -243,6 +243,9 @@ detectBtn.addEventListener('click', async () => {
   console.log(`Detected: ${count}`);
 });
 
+// --- ONNX Runtime WASM paths (same-origin for COEP compatibility) ---
+ort.env.wasm.wasmPaths = import.meta.env.BASE_URL;
+
 // --- WebGPU check ---
 const webgpuSupported = 'gpu' in navigator;
 if (!webgpuSupported) {
