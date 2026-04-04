@@ -252,7 +252,7 @@ detectBtn.addEventListener('click', async () => {
   detectBtn.disabled = false;
   detectBtn.textContent = 'Start Detection';
 
-  const output = results['output0'].data as Float32Array;
+  const output = await results['output0'].getData() as Float32Array;
   const scaleX = dispW / INPUT_SIZE;
   const scaleY = dispH / INPUT_SIZE;
 
@@ -282,8 +282,12 @@ detectBtn.addEventListener('click', async () => {
   console.log(`Detected: ${count}`);
 });
 
-// --- ONNX Runtime WASM paths (same-origin for COEP compatibility) ---
-ort.env.wasm.wasmPaths = import.meta.env.BASE_URL;
+// --- ONNX Runtime WASM paths ---
+// prod: public/ の WASM ファイルを BASE_URL で参照（COEP 対応）
+// dev:  設定しない → node_modules から Vite が解決（public/.mjs は import 不可）
+if (import.meta.env.PROD) {
+  ort.env.wasm.wasmPaths = import.meta.env.BASE_URL;
+}
 
 // --- WebGPU check ---
 const webgpuSupported = 'gpu' in navigator;
