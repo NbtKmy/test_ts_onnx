@@ -1,17 +1,25 @@
-# YOLO26m Object Detection in the Browser
+# YOLO Object Detection in the Browser
 
-A demo app that runs object detection entirely in your browser using [ONNX Web Runtime](https://onnxruntime.ai/docs/get-started/with-javascript/web.html) and [Ultralytics YOLO26m](https://docs.ultralytics.com/models/yolo26/).
+A demo app that runs object detection entirely in your browser using [ONNX Web Runtime](https://onnxruntime.ai/docs/get-started/with-javascript/web.html) and [Ultralytics YOLO26](https://docs.ultralytics.com/models/yolo26/).
 
 **Live demo:** https://nbtkmy.github.io/test_ts_onnx/
 
 ## Features
 
+### Static image detection (YOLO26m)
 - **Local file upload** — your image is never sent to any server; all inference runs on your device
 - **IIIF Manifest support** — load images from IIIF v2 / v3 manifests (auto-detected)
 - **CPU / WebGPU toggle** — switch execution backend at runtime; WebGPU is ~18x faster after warmup
 - **Adjustable threshold** — tune the detection score threshold with a slider
 
-## Performance (YOLO26m, 640×640 input)
+### Realtime webcam detection (YOLO26s)
+- **Live camera feed** — detects objects in realtime from your webcam
+- **CPU / WebGPU toggle** — WebGPU achieves ~40 fps on supported hardware
+- **Adjustable threshold** — tune confidence threshold on the fly
+
+## Performance
+
+### YOLO26m — static image (640×640 input)
 
 | Backend | Inference time |
 |---|---|
@@ -19,6 +27,13 @@ A demo app that runs object detection entirely in your browser using [ONNX Web R
 | CPU (multi-threaded via SharedArrayBuffer) | ~850 ms |
 | WebGPU (first run) | ~500 ms |
 | WebGPU (subsequent runs) | **~70 ms** |
+
+### YOLO26s — realtime webcam (640×640 input)
+
+| Backend | Throughput |
+|---|---|
+| CPU (multi-threaded) | ~3.5 fps |
+| WebGPU | **~40 fps** |
 
 ## Tech Stack
 
